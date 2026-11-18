@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="bn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#080b12">
+<title>Protected Video</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:#080b12;color:#f7f8fc}
+body{min-height:100vh;display:grid;place-items:center;padding:18px;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;user-select:none;-webkit-user-select:none}
+.shell{width:min(100%,440px);display:flex;flex-direction:column;align-items:center}
+.top{width:100%;display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}
+.brand{font-weight:800;letter-spacing:.07em;font-size:11px;color:#aeb8cb}
+.status{font-size:11px;color:#aeb8cb;border:1px solid #283247;border-radius:99px;padding:6px 9px;white-space:nowrap}
+.frame{position:relative;width:min(100%,390px);height:min(72vh,693px);aspect-ratio:9/16;overflow:hidden;border-radius:20px;background:#000;border:1px solid #283247;box-shadow:0 24px 90px #000a}
+video{width:100%;height:100%;object-fit:contain;display:block;background:#000}
+.caption{margin:13px 0 0;text-align:center;color:#9da9bf;font-size:12px}
+.start{position:absolute;inset:0;display:grid;place-items:center;background:#0007}
+.start button{border:0;border-radius:999px;padding:14px 20px;color:#08111f;background:#9ee7c1;font-weight:800;font-size:15px;cursor:pointer;box-shadow:0 8px 30px #0008}
+.shield{position:fixed;inset:0;z-index:20;display:none;place-items:center;padding:24px;background:rgba(0,0,0,.9);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px)}
+.shield.show{display:grid}
+.dialog{width:min(100%,460px);text-align:center;padding:30px 24px;border-radius:24px;background:#111827;border:1px solid #35415a;box-shadow:0 20px 80px #000b}
+.frog{font-size:42px;margin-bottom:10px}
+h1{font-size:clamp(21px,4vw,30px);line-height:1.35;margin:0 0 10px}
+.hint{color:#aeb8cb;font-size:13px;line-height:1.6;margin:0 0 20px}
+.dialog button{border:0;border-radius:999px;padding:12px 22px;color:#08111f;background:#9ee7c1;font-weight:800;cursor:pointer}
+body.locked .shell{filter:blur(18px)}
+body.locked{background:#000}
+@media(max-width:600px){body{padding:12px}.frame{height:min(72vh,680px);border-radius:15px}}
+</style>
+</head>
+<body>
+<main class="shell">
+  <div class="top">
+    <div class="brand">PRIVATE VIDEO • PROTECTED VIEW</div>
+    <div class="status">🛡️ Protection mode</div>
+  </div>
+  <div class="frame">
+    <video id="video" loop playsinline preload="metadata" disablepictureinpicture controlslist="nodownload noplaybackrate">
+      <source src="protected-video.mp4" type="video/mp4">
+      Your browser does not support this video.
+    </video>
+    <div class="start" id="startOverlay">
+      <button id="startBtn" type="button">▶ ভিডিও ও মিউজিক চালু করুন</button>
+    </div>
+  </div>
+  <p class="caption">Vertical 9:16 video • Sound on</p>
+</main>
+<div class="shield" id="shield" role="dialog" aria-modal="true" aria-labelledby="warning">
+  <div class="dialog">
+    <div class="frog">🐸</div>
+    <h1 id="warning">আরে ভাই স্ক্রিনশট মারা যাবেনা 🐸 রাগ করলা🐸</h1>
+    <p class="hint">প্রাইভেসির জন্য ভিডিওটি সাময়িকভাবে আড়াল করা হয়েছে। আবার দেখতে নিচের বাটনে চাপ দিন।</p>
+    <button id="returnBtn" type="button">আবার দেখুন</button>
+  </div>
+</div>
+<script>
+(() => {
+  const shield=document.getElementById('shield');
+  const video=document.getElementById('video');
+  const startOverlay=document.getElementById('startOverlay');
+  let locked=false, started=false;
+
+  async function startVideo(){
+    video.muted=false;
+    video.volume=1;
+    try{
+      await video.play();
+      started=true;
+      startOverlay.style.display='none';
+    }catch(e){
+      video.muted=true;
+      try{await video.play();started=true;startOverlay.style.display='none';}catch(_){}
+    }
+  }
+  function protectScreen(){
+    if(locked)return;
+    locked=true;
+    document.body.classList.add('locked');
+    shield.classList.add('show');
+    video.pause();
+  }
+  async function restoreScreen(){
+    locked=false;
+    shield.classList.remove('show');
+    document.body.classList.remove('locked');
+    if(started){
+      try{await video.play();}catch(e){startOverlay.style.display='grid';}
+    }else{
+      startOverlay.style.display='grid';
+    }
+  }
+
+  document.getElementById('startBtn').addEventListener('click',startVideo);
+  document.getElementById('returnBtn').addEventListener('click',restoreScreen);
+
+  // Best-effort deterrents only; browser JavaScript cannot block OS screenshots.
+  document.addEventListener('contextmenu',e=>e.preventDefault());
+  document.addEventListener('dragstart',e=>e.preventDefault());
+  document.addEventListener('selectstart',e=>e.preventDefault());
+  document.addEventListener('keydown',e=>{
+    const k=(e.key||'').toLowerCase(), mod=e.ctrlKey||e.metaKey;
+    if((mod&&['s','p','u'].includes(k))||(e.ctrlKey&&e.shiftKey&&['i','j','c'].includes(k))||k==='printscreen'){
+      e.preventDefault();protectScreen();
+    }
+  },true);
+  document.addEventListener('visibilitychange',()=>{if(document.hidden)protectScreen();});
+  window.addEventListener('blur',protectScreen);
+})();
+</script>
+</body>
+</html>
